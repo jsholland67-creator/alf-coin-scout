@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ALF Coin Scout</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #080C12;
+    --bg2: #0D1320;
+    --border: #1A2030;
+    --border2: #2D3748;
+    --dim: #4A5568;
+    --dim2: #2D3748;
+    --dim3: #1E2A3A;
+    --text: #E8EDF5;
+    --muted: #8899AA;
+    --c0: #00E5FF;
+    --c1: #FFD600;
+    --c2: #76FF03;
+    --c3: #FF6D00;
+    --red: #FF1744;
+    --font: 'Courier New', Courier, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    overscroll-behavior: none;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .header-left .sys { font-size: 10px; letter-spacing: 4px; color: var(--dim); margin-bottom: 2px; }
+  .header-left .title { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  .header-right { display: flex; align-items: flex-end; gap: 14px; }
+  .backup-btn {
+    background: transparent; border: 1px solid var(--border2); color: var(--dim);
+    border-radius: 6px; padding: 5px 10px; font-size: 9px; letter-spacing: 2px;
+    cursor: pointer; font-family: var(--font); margin-bottom: 2px;
+    transition: all 0.2s;
+  }
+  .backup-btn.open { background: var(--bg2); border-color: var(--dim); color: var(--muted); }
+  .watch-wrap { text-align: right; }
+  .watch-wrap .lbl { font-size: 10px; color: var(--dim); letter-spacing: 2px; }
+  .watch-count { font-size: 26px; font-weight: 700; transition: color 0.2s; }
+
+  /* BACKUP PANEL */
+  .backup-panel {
+    margin: 12px 16px 0;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 14px 12px;
+    display: none;
+  }
+  .backup-panel.visible { display: block; }
+  .backup-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .backup-top span { font-size: 10px; color: var(--dim); letter-spacing: 2px; }
+  .copy-btn {
+    background: var(--bg); border: 1px solid var(--dim); color: var(--muted);
+    border-radius: 6px; padding: 5px 14px; font-size: 10px; font-weight: 700;
+    letter-spacing: 2px; cursor: pointer; font-family: var(--font); transition: all 0.2s;
+  }
+  .copy-btn.copied { background: #76FF0322; border-color: var(--c2); color: var(--c2); text-shadow: 0 0 8px #76FF0399; }
+  .backup-textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--muted); font-family: var(--font);
+    font-size: 11px; line-height: 1.7; padding: 10px 12px;
+    resize: none; outline: none; height: 200px; user-select: all; -webkit-user-select: all;
+  }
+  .backup-hint { font-size: 9px; color: var(--dim2); letter-spacing: 1px; margin-top: 8px; text-align: center; }
+
+  /* TABS */
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    background: none; border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 2px 8px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: border-color 0.15s;
+  }
+  .tab-btn .tab-lbl { font-size: 8px; letter-spacing: 1.5px; color: var(--dim); font-weight: 700; font-family: var(--font); }
+  .tab-btn .tab-cnt { font-size: 17px; font-weight: 700; color: var(--dim2); font-family: var(--font); }
+
+  /* LIST */
+  .list { padding: 12px 16px 90px; }
+  .empty { text-align: center; color: var(--dim2); font-size: 12px; padding: 52px 0; letter-spacing: 3px; }
+
+  /* COIN CARD */
+  .card {
+    margin-bottom: 10px;
+    background: var(--bg2);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .card.sig-reclaim      { border-color: #00E5FF66; }
+  .card.sig-pull_back    { border-color: #FFD60066; }
+  .card.sig-breaks_under { border-color: #FF174466; }
+  .card.pend-del  { border-color: var(--red); }
+  .card.pend-move { border-color: #ffffff44; }
+
+  /* ROW 1 */
+  .card-row1 { display: flex; align-items: center; padding: 11px 12px; gap: 10px; }
+  .card-ticker { font-size: 15px; font-weight: 700; letter-spacing: 1px; min-width: 58px; flex-shrink: 0; }
+  .card-note { flex: 1; font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .act-btn {
+    background: var(--bg); border: 1px solid var(--border2); color: var(--dim);
+    border-radius: 5px; padding: 4px 8px; font-size: 10px; cursor: pointer;
+    letter-spacing: 1px; font-family: var(--font); transition: all 0.15s;
+  }
+  .act-btn.move-on  { background: #ffffff11; border-color: #ffffff66; color: #ffffff; }
+  .act-btn.del-pend { background: #FF174422; border-color: var(--red); color: var(--red); }
+
+  /* ROW 2 — SIGNALS */
+  .card-signals { border-top: 1px solid #111928; padding: 8px 12px 10px; }
+  .sig-header { font-size: 8px; color: var(--dim2); letter-spacing: 2px; margin-bottom: 7px; }
+  .sig-rows { display: flex; flex-direction: column; gap: 5px; }
+  .sig-row { display: flex; align-items: center; gap: 6px; }
+  .sig-btn {
+    min-width: 88px; flex-shrink: 0;
+    background: transparent; border: 1px solid var(--dim3); color: #3A4A5E;
+    border-radius: 4px; padding: 4px 8px; font-size: 9px; font-weight: 400;
+    cursor: pointer; letter-spacing: 1px; font-family: var(--font); transition: all 0.15s;
+  }
+  .sig-btn.active-reclaim      { background: #00E5FF18; border-color: #00E5FF; color: #00E5FF; font-weight: 700; text-shadow: 0 0 8px #00E5FF99; }
+  .sig-btn.active-pull_back    { background: #FFD60018; border-color: #FFD600; color: #FFD600; font-weight: 700; text-shadow: 0 0 8px #FFD60099; }
+  .sig-btn.active-breaks_under { background: #FF174418; border-color: #FF1744; color: #FF1744; font-weight: 700; text-shadow: 0 0 8px #FF174499; }
+
+  .price-area { display: flex; align-items: center; gap: 5px; flex: 1; }
+  .price-val { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+  .price-val.reclaim      { color: #00E5FF; text-shadow: 0 0 8px #00E5FF66; }
+  .price-val.pull_back    { color: #FFD600; text-shadow: 0 0 8px #FFD60066; }
+  .price-val.breaks_under { color: #FF1744; text-shadow: 0 0 8px #FF174466; }
+  .price-edit-lnk, .price-clr-lnk {
+    background: none; border: none; font-size: 9px; cursor: pointer;
+    font-family: var(--font); padding: 0 2px;
+  }
+  .price-edit-lnk { color: #3A4A5E; }
+  .price-clr-lnk  { color: var(--dim2); }
+  .price-add-btn {
+    background: none; border: 1px dashed var(--dim3); border-radius: 4px;
+    color: var(--dim2); font-size: 9px; cursor: pointer; padding: 3px 8px;
+    font-family: var(--font); letter-spacing: 1px;
+  }
+  .price-input-row { display: flex; gap: 5px; flex: 1; }
+  .price-input {
+    flex: 1; background: var(--bg); border-radius: 4px; color: #fff;
+    font-family: var(--font); font-size: 12px; font-weight: 700;
+    padding: 4px 8px; outline: none; min-width: 0;
+  }
+  .price-input.reclaim      { border: 1px solid #00E5FF66; }
+  .price-input.pull_back    { border: 1px solid #FFD60066; }
+  .price-input.breaks_under { border: 1px solid #FF174466; }
+  .price-set-btn {
+    border-radius: 4px; padding: 4px 8px; font-size: 9px; cursor: pointer;
+    font-family: var(--font); letter-spacing: 1px; font-weight: 700;
+  }
+  .price-set-btn.reclaim      { background: #00E5FF22; border: 1px solid #00E5FF; color: #00E5FF; }
+  .price-set-btn.pull_back    { background: #FFD60022; border: 1px solid #FFD600; color: #FFD600; }
+  .price-set-btn.breaks_under { background: #FF174422; border: 1px solid #FF1744; color: #FF1744; }
+  .price-cancel-btn { background: var(--bg); border: 1px solid var(--border2); color: var(--dim); border-radius: 4px; padding: 4px 6px; font-size: 9px; cursor: pointer; font-family: var(--font); }
+
+  /* MOVE ROW */
+  .move-row {
+    display: flex; gap: 6px; padding: 8px 12px;
+    border-top: 1px solid var(--border); background: var(--bg);
+    align-items: center;
+  }
+  .move-arrow { font-size: 10px; color: var(--dim); flex-shrink: 0; }
+  .move-cat-btn {
+    border-radius: 5px; padding: 5px 10px; font-size: 9px; cursor: pointer;
+    letter-spacing: 1px; font-family: var(--font); font-weight: 700;
+  }
+
+  /* ADD FORM */
+  .add-form {
+    background: var(--bg2); border-radius: 8px; padding: 14px 12px; margin-bottom: 10px;
+  }
+  .add-form-title { font-size: 10px; letter-spacing: 2px; margin-bottom: 10px; }
+  .add-input {
+    width: 100%; background: var(--bg); border-radius: 6px;
+    color: #fff; font-family: var(--font); font-size: 15px;
+    font-weight: 700; letter-spacing: 2px; padding: 10px 12px;
+    margin-bottom: 8px; outline: none; text-transform: uppercase;
+  }
+  .note-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--muted); font-family: var(--font);
+    font-size: 12px; padding: 9px 12px; margin-bottom: 12px; outline: none;
+  }
+  .form-btns { display: flex; gap: 8px; }
+  .add-submit {
+    flex: 1; border-radius: 6px; padding: 11px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    cursor: pointer; font-family: var(--font);
+  }
+  .add-cancel {
+    background: var(--bg2); border: 1px solid var(--border2); color: var(--dim);
+    border-radius: 6px; padding: 11px 14px; font-size: 11px; letter-spacing: 1px;
+    cursor: pointer; font-family: var(--font);
+  }
+
+  /* FAB */
+  .fab {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    width: 58px; height: 58px; border-radius: 50%; border: none;
+    font-size: 30px; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: box-shadow 0.2s;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="sys">ALF SYSTEM</div>
+    <div class="title">COIN SCOUT</div>
+  </div>
+  <div class="header-right">
+    <button class="backup-btn" id="backupToggle" onclick="toggleBackup()">BACKUP</button>
+    <div class="watch-wrap">
+      <div class="lbl">WATCHING</div>
+      <div class="watch-count" id="totalCount">0</div>
+    </div>
+  </div>
+</div>
+
+<div class="backup-panel" id="backupPanel">
+  <div class="backup-top">
+    <span>BACKUP SNAPSHOT</span>
+    <button class="copy-btn" id="copyBtn" onclick="handleCopy()">COPY ALL</button>
+  </div>
+  <textarea class="backup-textarea" id="backupText" readonly onclick="this.focus();this.select();this.setSelectionRange(0,99999);"></textarea>
+  <div class="backup-hint">COPY → PASTE INTO NOTES, EMAIL, OR GOOGLE KEEP</div>
+</div>
+
+<div class="tabs" id="tabBar"></div>
+<div class="list" id="list"></div>
+
+<button class="fab" id="fab" onclick="openAdd()">+</button>
+
+<script>
+const CATS = [
+  { id: 'new_launch', label: 'New Launch', color: '#00E5FF', glow: '0 0 12px #00E5FF55' },
+  { id: 'fast_cycle', label: 'Fast Cycle', color: '#FFD600', glow: '0 0 12px #FFD60055' },
+  { id: 'ers',        label: 'ERS',        color: '#76FF03', glow: '0 0 12px #76FF0355' },
+  { id: 'core',       label: 'Core',       color: '#FF6D00', glow: '0 0 12px #FF6D0055' },
+];
+const SIGS = [
+  { id: 'reclaim',      label: 'Reclaim',      color: '#00E5FF' },
+  { id: 'pull_back',    label: 'Pull Back',    color: '#FFD600' },
+  { id: 'breaks_under', label: 'Breaks Under', color: '#FF1744' },
+];
+const KEY = 'alf_coin_scout_html_v1';
+
+let data = { new_launch: [], fast_cycle: [], ers: [], core: [] };
+let activeTab = 'new_launch';
+let delPend = null, movePend = null, priceEdit = null;
+let addingOpen = false;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) data = JSON.parse(raw);
+  } catch {}
+}
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+}
+
+function total() { return Object.values(data).reduce((a,b) => a + b.length, 0); }
+function cat() { return CATS.find(c => c.id === activeTab); }
+
+// ── RENDER ──────────────────────────────────────────────
+function render() {
+  save();
+  const c = cat();
+
+  // Total count
+  document.getElementById('totalCount').textContent = total();
+  document.getElementById('totalCount').style.color = c.color;
+  document.getElementById('totalCount').style.textShadow = c.glow;
+
+  // FAB
+  const fab = document.getElementById('fab');
+  fab.style.background = c.color;
+  fab.style.color = '#080C12';
+  fab.style.boxShadow = `0 4px 28px ${c.color}77`;
+  fab.style.display = addingOpen ? 'none' : 'flex';
+
+  renderTabs();
+  renderList();
+}
+
+function renderTabs() {
+  const bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+  CATS.forEach(cat => {
+    const on = activeTab === cat.id;
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.style.borderBottomColor = on ? cat.color : 'transparent';
+    btn.innerHTML = `
+      <span class="tab-lbl" style="color:${on ? cat.color : ''}; text-shadow:${on ? cat.glow : 'none'}">${cat.label.toUpperCase()}</span>
+      <span class="tab-cnt" style="color:${on ? cat.color : ''}; text-shadow:${on ? cat.glow : 'none'}">${data[cat.id].length}</span>`;
+    btn.onclick = () => { activeTab = cat.id; delPend = null; movePend = null; priceEdit = null; addingOpen = false; render(); };
+    bar.appendChild(btn);
+  });
+}
+
+function renderList() {
+  const c = cat();
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  const coins = data[activeTab];
+
+  if (coins.length === 0 && !addingOpen) {
+    list.innerHTML = '<div class="empty">NO COINS SCOUTED YET</div>';
+  }
+
+  coins.forEach(coin => {
+    const isPendDel  = delPend  === coin.ticker;
+    const isPendMove = movePend === coin.ticker;
+    const activeSig  = SIGS.find(s => s.id === coin.signal);
+    const prices     = coin.prices || {};
+
+    const card = document.createElement('div');
+    card.className = 'card' +
+      (isPendDel ? ' pend-del' : '') +
+      (isPendMove ? ' pend-move' : '') +
+      (activeSig && !isPendDel && !isPendMove ? ` sig-${activeSig.id}` : '');
+
+    // ROW 1
+    const row1 = document.createElement('div');
+    row1.className = 'card-row1';
+    row1.innerHTML = `
+      <div class="card-ticker" style="color:${c.color}; text-shadow:${c.glow}">${coin.ticker}</div>
+      <div class="card-note">${coin.note || '—'}</div>
+      <div class="card-actions">
+        <button class="act-btn ${isPendMove ? 'move-on' : ''}" onclick="toggleMove('${coin.ticker}')" 
+          style="${isPendMove ? `background:#ffffff11;border-color:#ffffff66;color:#fff` : ''}">MOVE</button>
+        <button class="act-btn ${isPendDel ? 'del-pend' : ''}" onclick="handleDel('${coin.ticker}')">
+          ${isPendDel ? 'CONFIRM' : 'DEL'}
+        </button>
+      </div>`;
+    card.appendChild(row1);
+
+    // ROW 2 — SIGNALS
+    const sigSection = document.createElement('div');
+    sigSection.className = 'card-signals';
+    sigSection.innerHTML = `<div class="sig-header">SIGNAL / PRICE TARGET</div>`;
+    const sigRows = document.createElement('div');
+    sigRows.className = 'sig-rows';
+
+    SIGS.forEach(sig => {
+      const isActive  = coin.signal === sig.id;
+      const price     = prices[sig.id] || '';
+      const isEditing = priceEdit && priceEdit.ticker === coin.ticker && priceEdit.sigId === sig.id;
+
+      const row = document.createElement('div');
+      row.className = 'sig-row';
+
+      const sigBtn = document.createElement('button');
+      sigBtn.className = `sig-btn${isActive ? ` active-${sig.id}` : ''}`;
+      sigBtn.textContent = sig.label.toUpperCase();
+      sigBtn.onclick = () => { toggleSignal(coin.ticker, sig.id); };
+      row.appendChild(sigBtn);
+
+      const priceArea = document.createElement('div');
+      priceArea.className = 'price-area';
+
+      if (isEditing) {
+        priceArea.innerHTML = `
+          <div class="price-input-row">
+            <input class="price-input ${sig.id}" id="pi_${coin.ticker}_${sig.id}" type="text" placeholder="0.0000" value="${priceEdit.val}">
+            <button class="price-set-btn ${sig.id}" onclick="savePrice('${coin.ticker}','${sig.id}')">SET</button>
+            <button class="price-cancel-btn" onclick="cancelPrice()">✕</button>
+          </div>`;
+        setTimeout(() => {
+          const inp = document.getElementById(`pi_${coin.ticker}_${sig.id}`);
+          if (inp) { inp.focus(); inp.addEventListener('keydown', e => { if(e.key==='Enter') savePrice(coin.ticker, sig.id); if(e.key==='Escape') cancelPrice(); }); }
+        }, 50);
+      } else if (price) {
+        priceArea.innerHTML = `
+          <span class="price-val ${sig.id}">$${price}</span>
+          <button class="price-edit-lnk" onclick="openPriceEdit('${coin.ticker}','${sig.id}','${price}')">EDIT</button>
+          <button class="price-clr-lnk"  onclick="clearPrice('${coin.ticker}','${sig.id}')">✕</button>`;
+      } else {
+        priceArea.innerHTML = `<button class="price-add-btn" onclick="openPriceEdit('${coin.ticker}','${sig.id}','')">+ ADD $</button>`;
+      }
+
+      row.appendChild(priceArea);
+      sigRows.appendChild(row);
+    });
+    sigSection.appendChild(sigRows);
+    card.appendChild(sigSection);
+
+    // MOVE ROW
+    if (isPendMove) {
+      const moveRow = document.createElement('div');
+      moveRow.className = 'move-row';
+      moveRow.innerHTML = `<span class="move-arrow">→</span>`;
+      CATS.filter(ct => ct.id !== activeTab).forEach(ct => {
+        const mb = document.createElement('button');
+        mb.className = 'move-cat-btn';
+        mb.style.background = ct.color + '15';
+        mb.style.border = `1px solid ${ct.color}55`;
+        mb.style.color = ct.color;
+        mb.textContent = ct.label.toUpperCase();
+        mb.onclick = () => moveCoin(coin.ticker, ct.id);
+        moveRow.appendChild(mb);
+      });
+      card.appendChild(moveRow);
+    }
+
+    list.appendChild(card);
+  });
+
+  // ADD FORM
+  if (addingOpen) {
+    const c2 = cat();
+    const form = document.createElement('div');
+    form.className = 'add-form';
+    form.style.borderColor = c2.color + '55';
+    form.style.border = `1px solid ${c2.color}55`;
+    form.innerHTML = `
+      <div class="add-form-title" style="color:${c2.color}">ADD TO ${c2.label.toUpperCase()}</div>
+      <input class="add-input" id="tickerInput" placeholder="TICKER (e.g. SOL)" 
+        style="border:1px solid ${c2.color}44; color:${c2.color}"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')submitAdd()">
+      <input class="note-input" id="noteInput" placeholder="Note (optional)"
+        onkeydown="if(event.key==='Enter')submitAdd()">
+      <div class="form-btns">
+        <button class="add-submit" 
+          style="background:${c2.color}22; border:1px solid ${c2.color}; color:${c2.color}; text-shadow:${c2.glow}"
+          onclick="submitAdd()">ADD COIN</button>
+        <button class="add-cancel" onclick="closeAdd()">CANCEL</button>
+      </div>`;
+    list.appendChild(form);
+    setTimeout(() => { const inp = document.getElementById('tickerInput'); if(inp) inp.focus(); }, 50);
+  }
+}
+
+// ── ACTIONS ─────────────────────────────────────────────
+function submitAdd() {
+  const t = (document.getElementById('tickerInput')?.value || '').trim().toUpperCase();
+  if (!t) return;
+  const n = (document.getElementById('noteInput')?.value || '').trim();
+  if (!data[activeTab].find(c => c.ticker === t)) {
+    data[activeTab].push({ ticker: t, note: n, signal: null, prices: {} });
+  }
+  addingOpen = false;
+  render();
+}
+
+function openAdd() { addingOpen = true; delPend = null; movePend = null; priceEdit = null; render(); }
+function closeAdd() { addingOpen = false; render(); }
+
+function handleDel(ticker) {
+  if (delPend === ticker) {
+    data[activeTab] = data[activeTab].filter(c => c.ticker !== ticker);
+    delPend = null;
+  } else {
+    delPend = ticker; movePend = null; priceEdit = null;
+  }
+  render();
+}
+
+function toggleMove(ticker) {
+  movePend = movePend === ticker ? null : ticker;
+  delPend = null; priceEdit = null;
+  render();
+}
+
+function moveCoin(ticker, toTab) {
+  const coin = data[activeTab].find(c => c.ticker === ticker);
+  if (!coin) return;
+  data[activeTab] = data[activeTab].filter(c => c.ticker !== ticker);
+  if (!data[toTab].find(c => c.ticker === ticker)) data[toTab].push({ ...coin });
+  movePend = null;
+  render();
+}
+
+function toggleSignal(ticker, sigId) {
+  const coin = data[activeTab].find(c => c.ticker === ticker);
+  if (!coin) return;
+  coin.signal = coin.signal === sigId ? null : sigId;
+  priceEdit = null;
+  render();
+}
+
+function openPriceEdit(ticker, sigId, val) {
+  priceEdit = { ticker, sigId, val };
+  render();
+}
+
+function savePrice(ticker, sigId) {
+  const inp = document.getElementById(`pi_${ticker}_${sigId}`);
+  const val = (inp?.value || '').trim();
+  const coin = data[activeTab].find(c => c.ticker === ticker);
+  if (coin) { coin.prices = coin.prices || {}; coin.prices[sigId] = val; }
+  priceEdit = null;
+  render();
+}
+
+function clearPrice(ticker, sigId) {
+  const coin = data[activeTab].find(c => c.ticker === ticker);
+  if (coin && coin.prices) coin.prices[sigId] = '';
+  render();
+}
+
+function cancelPrice() { priceEdit = null; render(); }
+
+// ── BACKUP ───────────────────────────────────────────────
+function toggleBackup() {
+  const panel = document.getElementById('backupPanel');
+  const btn   = document.getElementById('backupToggle');
+  const showing = panel.classList.contains('visible');
+  if (showing) {
+    panel.classList.remove('visible');
+    btn.classList.remove('open');
+    btn.textContent = 'BACKUP';
+  } else {
+    document.getElementById('backupText').value = buildBackup();
+    panel.classList.add('visible');
+    btn.classList.add('open');
+    btn.textContent = 'CLOSE';
+  }
+}
+
+function buildBackup() {
+  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  let out = `ALF COIN SCOUT BACKUP — ${date}\n` + '═'.repeat(36) + '\n\n';
+  let any = false;
+  CATS.forEach(cat => {
+    const coins = data[cat.id];
+    if (!coins.length) return;
+    any = true;
+    out += `[ ${cat.label.toUpperCase()} ]\n`;
+    coins.forEach(coin => {
+      out += `  ${coin.ticker}`;
+      if (coin.note) out += `  — ${coin.note}`;
+      out += '\n';
+      SIGS.forEach(s => {
+        const active = coin.signal === s.id;
+        const price  = (coin.prices || {})[s.id];
+        if (active || price) out += `    ${s.label}${active ? ' ●' : ''}${price ? `: $${price}` : ''}\n`;
+      });
+    });
+    out += '\n';
+  });
+  if (!any) out += '  No coins saved yet.\n';
+  return out;
+}
+
+function handleCopy() {
+  const text = document.getElementById('backupText').value;
+  const btn  = document.getElementById('copyBtn');
+  function markCopied() {
+    btn.textContent = '✓ COPIED';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY ALL'; btn.classList.remove('copied'); }, 2500);
+  }
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(markCopied).catch(fallback);
+  } else { fallback(); }
+  function fallback() {
+    const el = document.getElementById('backupText');
+    el.focus(); el.select(); el.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); markCopied(); } catch {}
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────
+load();
+render();
+</script>
+</body>
+</html>
